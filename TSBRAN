@@ -1,0 +1,187 @@
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+
+-- ==========================================
+-- CONFIG & KOORDINAT
+-- ==========================================
+local pos1 = Vector3.new(153, 3, 137)
+local pos2 = Vector3.new(256, 3, 140)
+local pos3 = Vector3.new(360, 3, 140)
+local pos4 = Vector3.new(499, 3, 140)
+local pos5 = Vector3.new(678, 3, 140)
+local pos6 = Vector3.new(952, 3, 140)
+local pos7 = Vector3.new(1364, 3, 140)
+local pos8 = Vector3.new(1811, 3, 140)
+local pos9 = Vector3.new(1989, 3, 140)
+local pos10 = Vector3.new(2226, -3, 130)
+local pos11 = Vector3.new(2279, -3, 130)
+local pos12 = Vector3.new(2581, -3, 130)
+
+local moveSpeed = 2.5    
+local fastSpeed = 1.2    
+local normalDelay = 0.5  
+local isMoving = false 
+-- ==========================================
+
+-- 1. BYPASS ALLOWED SPACE
+task.spawn(function()
+    while task.wait(1) do
+        pcall(function()
+            local lobby = workspace.AllowedSpaces.Lobby
+            lobby.Size = Vector3.new(35000, 10000, 35000)
+            lobby.CanCollide = false
+            lobby.Transparency = 1
+        end)
+    end
+end)
+
+-- 2. ANTI-KILL PART
+local function sanitizeArea(center, radius)
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and (part.Position - center).Magnitude < radius then
+            if part.Name ~= "HumanoidRootPart" then
+                part.CanTouch = false
+                part.CanQuery = false
+            end
+        end
+    end
+end
+
+-- UI SETUP
+if CoreGui:FindFirstChild("TsunamiBrainrotUI") then CoreGui.TsunamiBrainrotUI:Destroy() end
+local screenGui = Instance.new("ScreenGui", CoreGui)
+screenGui.Name = "TsunamiBrainrotUI"
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 160, 0, 175)
+mainFrame.Position = UDim2.new(0.5, -80, 0.5, -87)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderSizePixel = 0
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+
+local dragBar = Instance.new("Frame", mainFrame)
+dragBar.Size = UDim2.new(1, 0, 0, 30)
+dragBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+dragBar.BorderSizePixel = 0
+Instance.new("UICorner", dragBar).CornerRadius = UDim.new(0, 10)
+
+local function createBtn(text, pos, color)
+    local btn = Instance.new("TextButton", mainFrame)
+    btn.Size = UDim2.new(0, 140, 0, 35)
+    btn.Position = pos
+    btn.Text = text
+    btn.BackgroundColor3 = color
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    return btn
+end
+
+local endBtn = createBtn("GO TO END", UDim2.new(0, 10, 0, 40), Color3.fromRGB(0, 170, 0))
+local homeBtn = createBtn("GO HOME", UDim2.new(0, 10, 0, 85), Color3.fromRGB(170, 0, 0))
+local delBtn = createBtn("VVIP WALLS", UDim2.new(0, 10, 0, 130), Color3.fromRGB(120, 120, 120))
+
+local currentTween = nil
+local player = Players.LocalPlayer
+
+local function move(target, speed)
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if root and char.Humanoid.Health > 0 then
+        local tInfo = TweenInfo.new(speed or moveSpeed, Enum.EasingStyle.Linear)
+        currentTween = TweenService:Create(root, tInfo, {CFrame = CFrame.new(target)})
+        currentTween:Play()
+        return currentTween
+    end
+end
+
+-- STOP LOGIC SAAT MATI
+local function onCharAdded(char)
+    char:WaitForChild("Humanoid").Died:Connect(function()
+        isMoving = false
+        if currentTween then currentTween:Cancel() end
+    end)
+end
+if player.Character then onCharAdded(player.Character) end
+player.CharacterAdded:Connect(onCharAdded)
+
+-- TOMBOL GO TO END (MAJU)
+endBtn.MouseButton1Click:Connect(function()
+    if isMoving then return end
+    isMoving = true
+    
+    sanitizeArea(pos12, 100)
+    
+    local forwardRoute = {
+        {pos = pos1, s = moveSpeed}, {pos = pos2, s = moveSpeed}, {pos = pos3, s = moveSpeed},
+        {pos = pos4, s = moveSpeed}, {pos = pos5, s = moveSpeed}, {pos = pos6, s = moveSpeed},
+        {pos = pos7, s = moveSpeed}, {pos = pos8, s = moveSpeed}, {pos = pos9, s = moveSpeed},
+        {pos = pos10, s = fastSpeed}, {pos = pos11, s = 0.5}, {pos = pos12, s = fastSpeed}
+    }
+    
+    for i, data in ipairs(forwardRoute) do
+        if not isMoving then break end
+        local t = move(data.pos, data.s)
+        if t then 
+            t.Completed:Wait() 
+            if i < #forwardRoute and isMoving then task.wait(normalDelay) end 
+        end
+    end
+    isMoving = false
+end)
+
+-- TOMBOL GO HOME (MUNDUR KE POS 1)
+homeBtn.MouseButton1Click:Connect(function()
+    if isMoving then 
+        isMoving = false
+        if currentTween then currentTween:Cancel() end
+        task.wait(0.1)
+    end
+    
+    isMoving = true
+    
+    -- Rute balik berhenti di Pos 1
+    local backwardRoute = {
+        {pos = pos11, s = 0.5}, 
+        {pos = pos10, s = fastSpeed}, 
+        {pos = pos9, s = fastSpeed},
+        {pos = pos8, s = moveSpeed}, 
+        {pos = pos7, s = moveSpeed}, 
+        {pos = pos6, s = moveSpeed},
+        {pos = pos5, s = moveSpeed}, 
+        {pos = pos4, s = moveSpeed}, 
+        {pos = pos3, s = moveSpeed},
+        {pos = pos2, s = moveSpeed}, 
+        {pos = pos1, s = moveSpeed} -- Titik akhir di Pos 1
+    }
+    
+    for i, data in ipairs(backwardRoute) do
+        if not isMoving then break end
+        local t = move(data.pos, data.s)
+        if t then 
+            t.Completed:Wait() 
+            if i < #backwardRoute and isMoving then task.wait(normalDelay) end 
+        end
+    end
+    isMoving = false
+end)
+
+delBtn.MouseButton1Click:Connect(function()
+    local vw = workspace:FindFirstChild("VIPWalls")
+    if vw then for _, obj in pairs(vw:GetChildren()) do obj:Destroy() end end
+end)
+
+-- Drag Logic
+local dragging, dragStart, startPos
+dragBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dragStart = input.Position; startPos = mainFrame.Position end
+end)
+UIS.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UIS.InputEnded:Connect(function(input) dragging = false end)
